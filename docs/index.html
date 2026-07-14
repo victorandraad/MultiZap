@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>MultiZap — every WhatsApp account in one tiny native Mac app</title>
+<meta name="description" content="Run multiple WhatsApp accounts side by side on macOS, isolated and with real notifications — in about 5 MB. Native SwiftUI, no Electron."/>
+<meta property="og:title" content="MultiZap"/>
+<meta property="og:description" content="Every WhatsApp account in one native Mac window. ~5 MB, no Electron."/>
+<meta property="og:type" content="website"/>
+<link rel="icon" href="icon.png"/>
+<style>
+  :root{
+    --ink:#0E1B14;
+    --paper:#F4F9F5;
+    --card:#FFFFFF;
+    --green:#12A150;
+    --green-bright:#25D366;
+    --green-deep:#0C7B3D;
+    --mist:#5A6B61;
+    --line:rgba(14,27,20,.10);
+    --shadow:0 24px 60px -24px rgba(12,80,44,.35);
+    --font-display:"SF Pro Rounded", ui-rounded, "SF Pro", system-ui, sans-serif;
+    --font-body:-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono:ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#E8F1EB; --paper:#0A130E; --card:#12211A;
+      --green:#34C56F; --green-bright:#25D366; --green-deep:#8FE9B4;
+      --mist:#8AA396; --line:rgba(255,255,255,.10);
+      --shadow:0 24px 60px -24px rgba(0,0,0,.6);
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .display{font-family:var(--font-display);font-weight:800;letter-spacing:-.02em;line-height:1.02}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{
+    font-family:var(--font-mono);font-size:.74rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--green);font-weight:600;
+  }
+
+  /* NAV */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+    background:color-mix(in srgb, var(--paper) 82%, transparent);
+    border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:1.15rem}
+  .brand img{width:30px;height:30px;border-radius:8px}
+  .nav-links{display:flex;align-items:center;gap:8px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;
+    border-radius:11px;font-weight:650;font-size:.94rem;text-decoration:none;
+    border:1px solid transparent;transition:transform .15s ease, box-shadow .2s ease, background .2s ease;
+    white-space:nowrap;
+  }
+  .btn-primary{background:linear-gradient(180deg,var(--green-bright),var(--green));color:#062E19;
+    box-shadow:0 8px 20px -8px rgba(18,161,80,.7)}
+  .btn-primary:hover{transform:translateY(-2px)}
+  .btn-ghost{border-color:var(--line);color:var(--ink);background:transparent}
+  .btn-ghost:hover{border-color:var(--green);color:var(--green)}
+  .btn-sm{height:38px;padding:0 14px;font-size:.9rem;border-radius:10px}
+
+  /* HERO */
+  .hero{position:relative;padding:76px 0 40px}
+  .hero::before{
+    content:"";position:absolute;inset:-20% -10% auto -10%;height:640px;z-index:-1;
+    background:radial-gradient(60% 60% at 72% 20%, rgba(37,211,102,.20), transparent 70%);
+    pointer-events:none;
+  }
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:52px;align-items:center}
+  .hero h1{font-size:clamp(2.6rem,6vw,4.4rem);margin:16px 0 0}
+  .hero h1 .accent{color:var(--green)}
+  .hero .lead{font-size:1.18rem;color:var(--mist);margin:22px 0 30px;max-width:32ch}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .cta-note{margin-top:16px;font-family:var(--font-mono);font-size:.8rem;color:var(--mist)}
+  .cta-note b{color:var(--green);font-weight:600}
+
+  /* MOCK WINDOW (signature) */
+  .win{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    box-shadow:var(--shadow);transform:translateY(0);
+  }
+  .win-bar{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;
+    border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--card) 80%, var(--paper))}
+  .dot{width:12px;height:12px;border-radius:50%}
+  .dot.r{background:#FF5F57}.dot.y{background:#FEBC2E}.dot.g{background:#28C840}
+  .win-body{display:flex;height:340px}
+  .rail{width:74px;flex:none;border-right:1px solid var(--line);
+    display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 0;
+    background:color-mix(in srgb,var(--card) 88%, var(--paper))}
+  .ava{width:44px;height:44px;border-radius:14px;position:relative;display:grid;place-items:center;
+    color:#fff;font-family:var(--font-display);font-weight:800;font-size:.95rem}
+  .ava.sel{outline:2px solid #fff;box-shadow:0 4px 12px -3px rgba(0,0,0,.35)}
+  .ava .badge{position:absolute;top:-5px;right:-6px;min-width:18px;height:18px;padding:0 4px;
+    border-radius:9px;background:#FF3B30;color:#fff;font-size:.66rem;font-weight:700;
+    display:grid;place-items:center;border:2px solid var(--card)}
+  .ava.add{background:color-mix(in srgb,var(--ink) 10%, transparent);color:var(--mist);font-size:1.3rem;margin-top:auto}
+  .chat{flex:1;display:flex;flex-direction:column;background:
+    linear-gradient(180deg,color-mix(in srgb,var(--green) 6%, var(--card)),var(--card))}
+  .chat-head{height:52px;display:flex;align-items:center;gap:10px;padding:0 18px;border-bottom:1px solid var(--line)}
+  .chat-head .ph{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--green-bright),var(--green))}
+  .chat-head b{font-size:.95rem}
+  .chat-head span{font-size:.75rem;color:var(--green);font-weight:600}
+  .msgs{flex:1;padding:18px;display:flex;flex-direction:column;gap:10px;justify-content:flex-end}
+  .bubble{max-width:74%;padding:9px 13px;border-radius:14px;font-size:.86rem;line-height:1.4}
+  .bubble.in{align-self:flex-start;background:color-mix(in srgb,var(--ink) 7%, var(--card));border-bottom-left-radius:5px}
+  .bubble.out{align-self:flex-end;background:linear-gradient(180deg,#D6F5E3,#B9EECC);color:#0B3D22;border-bottom-right-radius:5px}
+  @media (prefers-color-scheme: dark){
+    .bubble.out{background:linear-gradient(180deg,#1E5637,#164028);color:#DDF6E7}
+  }
+
+  /* THESIS strip */
+  .thesis{padding:64px 0}
+  .thesis p{font-family:var(--font-display);font-weight:700;font-size:clamp(1.5rem,3.4vw,2.4rem);
+    line-height:1.2;letter-spacing:-.01em;max-width:20ch}
+  .thesis .hl{color:var(--green);white-space:nowrap}
+
+  /* SECTION scaffolding */
+  section{padding:56px 0}
+  .sec-head{margin-bottom:34px;max-width:52ch}
+  .sec-head h2{font-family:var(--font-display);font-weight:800;font-size:clamp(1.7rem,3.2vw,2.3rem);
+    letter-spacing:-.01em;margin-top:8px}
+  .sec-head p{color:var(--mist);margin-top:10px;font-size:1.05rem}
+
+  /* COMPARISON */
+  .compare{background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+  .crow{display:grid;grid-template-columns:1.4fr 1fr 1fr;align-items:center;
+    padding:16px 22px;border-bottom:1px solid var(--line)}
+  .crow:last-child{border-bottom:0}
+  .crow.head{background:color-mix(in srgb,var(--green) 8%, var(--card));font-weight:650}
+  .crow .lbl{color:var(--mist)}
+  .crow.head .lbl{color:var(--ink)}
+  .cval{font-family:var(--font-mono);font-weight:600;font-size:1.02rem;text-align:right}
+  .cval.win{color:var(--green)}
+  .cval.lose{color:var(--mist)}
+  .col-app{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+  .tag-mz{font-family:var(--font-display);font-weight:800}
+
+  /* FEATURES */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;
+    transition:transform .18s ease, border-color .2s ease}
+  .card:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--green) 40%, var(--line))}
+  .chip{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:1.2rem;
+    margin-bottom:14px;background:linear-gradient(135deg,color-mix(in srgb,var(--green) 20%, transparent),transparent);
+    border:1px solid var(--line)}
+  .card h3{font-family:var(--font-display);font-weight:750;font-size:1.08rem;margin-bottom:6px}
+  .card p{color:var(--mist);font-size:.92rem}
+
+  /* MODES */
+  .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .mode{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column}
+  .mode.feat{border-color:color-mix(in srgb,var(--green) 45%, var(--line));
+    box-shadow:0 12px 30px -18px rgba(18,161,80,.5)}
+  .mode .name{font-family:var(--font-display);font-weight:800;font-size:1.15rem;display:flex;align-items:center;gap:8px}
+  .mode .pill{font-family:var(--font-mono);font-size:.66rem;font-weight:600;color:var(--green);
+    border:1px solid color-mix(in srgb,var(--green) 40%, var(--line));border-radius:20px;padding:2px 8px}
+  .mode .ram{font-family:var(--font-mono);font-size:.8rem;color:var(--mist);margin:14px 0 6px}
+  .bar{height:8px;border-radius:5px;background:color-mix(in srgb,var(--ink) 8%, transparent);overflow:hidden}
+  .bar i{display:block;height:100%;width:0;border-radius:5px;
+    background:linear-gradient(90deg,var(--green-bright),var(--green));transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+  .mode p{color:var(--mist);font-size:.9rem;margin-top:14px}
+
+  /* PRIVACY */
+  .privacy{background:linear-gradient(135deg,color-mix(in srgb,var(--green) 12%, var(--card)),var(--card));
+    border:1px solid var(--line);border-radius:20px;padding:34px;display:flex;gap:20px;align-items:flex-start}
+  .privacy .ic{font-size:1.8rem;flex:none}
+  .privacy h2{font-family:var(--font-display);font-weight:800;font-size:1.4rem;margin-bottom:6px}
+  .privacy p{color:var(--mist)}
+
+  /* CONTRIBUTE */
+  .contrib{text-align:center;padding:72px 0}
+  .contrib h2{font-family:var(--font-display);font-weight:800;font-size:clamp(1.9rem,4vw,2.8rem);letter-spacing:-.01em}
+  .contrib p{color:var(--mist);max-width:52ch;margin:14px auto 0;font-size:1.08rem}
+  .contrib .cta-row{justify-content:center;margin-top:26px}
+  .steps{max-width:560px;margin:34px auto 0;text-align:left;background:var(--ink);color:var(--paper);
+    border-radius:14px;padding:20px 22px;font-family:var(--font-mono);font-size:.86rem;line-height:1.9;overflow-x:auto}
+  .steps .c{color:var(--green-bright)}
+  @media (prefers-color-scheme: dark){ .steps{background:#050B08} }
+
+  /* FOOTER */
+  footer{border-top:1px solid var(--line);padding:32px 0;color:var(--mist);font-size:.85rem}
+  .foot-in{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center}
+  .foot-in a{color:var(--green);text-decoration:none}
+
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease, transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  @media (max-width:860px){
+    .hero-grid{grid-template-columns:1fr;gap:36px}
+    .cards,.modes{grid-template-columns:1fr}
+    .nav-links .hide{display:none}
+    .win-body{height:300px}
+    .crow{grid-template-columns:1.3fr 1fr 1fr;padding:14px 16px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{scroll-behavior:auto!important}
+    .reveal{opacity:1;transform:none;transition:none}
+    .bar i{transition:none}
+    .btn:hover,.card:hover{transform:none}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-in">
+    <div class="brand"><img src="icon.png" alt=""/> MultiZap</div>
+    <div class="nav-links">
+      <a class="btn btn-ghost btn-sm hide" href="https://github.com/victorandraad/MultiZap">GitHub ★</a>
+      <a class="btn btn-primary btn-sm" href="https://github.com/victorandraad/MultiZap/releases/latest">Download</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Native macOS · Apple Silicon</span>
+      <h1 class="display">All your WhatsApp<br/>accounts, in one<br/><span class="accent">tiny</span> native app.</h1>
+      <p class="lead">MultiZap runs several WhatsApp Web sessions side by side — isolated, with real notifications — in about 5&nbsp;MB. No Electron, no bundled browser.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/victorandraad/MultiZap/releases/latest">↓ Download for macOS</a>
+        <a class="btn btn-ghost" href="https://github.com/victorandraad/MultiZap">View source</a>
+      </div>
+      <div class="cta-note">Free · <b>MIT</b> · macOS&nbsp;14+ · runs native on Apple&nbsp;Silicon</div>
+    </div>
+
+    <div class="win" id="heroWin">
+      <div class="win-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <div class="win-body">
+        <div class="rail">
+          <div class="ava sel" style="background:linear-gradient(135deg,#2AE070,#12A150)">P
+            <span class="badge">3</span></div>
+          <div class="ava" style="background:linear-gradient(135deg,#3FB6F5,#1E86C7)">W
+            <span class="badge">9</span></div>
+          <div class="ava" style="background:linear-gradient(135deg,#B98CFF,#7C4DE0)">F</div>
+          <div class="ava add">+</div>
+        </div>
+        <div class="chat">
+          <div class="chat-head"><span class="ph"></span><div><b>Personal</b><br/><span>online</span></div></div>
+          <div class="msgs">
+            <div class="bubble in">Ready for tomorrow? 🙌</div>
+            <div class="bubble out">All set 👍 leaving at 9</div>
+            <div class="bubble in">Perfect — see you there</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="thesis wrap reveal">
+  <p>Everyone else ships <span class="hl">200 MB of Chromium.</span><br/>This is <span class="hl">five megabytes</span> of native Swift.</p>
+</div>
+
+<section class="wrap reveal">
+  <div class="sec-head">
+    <span class="eyebrow">The gap it fills</span>
+    <h2>Multi-account was heavy. Native was single-account. Not anymore.</h2>
+    <p>WhatsApp Web itself costs the same everywhere. MultiZap just skips the browser it doesn't need.</p>
+  </div>
+  <div class="compare">
+    <div class="crow head">
+      <span class="lbl">Measured on the same Mac</span>
+      <span class="cval col-app"><span class="tag-mz">MultiZap</span></span>
+      <span class="cval">Electron apps</span>
+    </div>
+    <div class="crow"><span class="lbl">App size on disk</span><span class="cval win">~5 MB</span><span class="cval lose">~200 MB</span></div>
+    <div class="crow"><span class="lbl">Browser engine</span><span class="cval win">system WebKit</span><span class="cval lose">bundled Chromium</span></div>
+    <div class="crow"><span class="lbl">Base memory overhead</span><span class="cval win">~86 MB</span><span class="cval lose">~200–250 MB</span></div>
+    <div class="crow"><span class="lbl">Apple Silicon</span><span class="cval win">native arm64</span><span class="cval lose">varies</span></div>
+  </div>
+</section>
+
+<section class="wrap reveal">
+  <div class="sec-head">
+    <span class="eyebrow">What you get</span>
+    <h2>Built like a Mac app, not a browser tab.</h2>
+  </div>
+  <div class="cards">
+    <div class="card"><div class="chip">🔒</div><h3>Isolated sessions</h3><p>Each account gets its own persistent data store. Your numbers never mix — log in once, stay logged in.</p></div>
+    <div class="card"><div class="chip">🖼️</div><h3>Real identity</h3><p>The sidebar shows each account's actual profile photo and number, detected automatically. Rename or recolor anytime.</p></div>
+    <div class="card"><div class="chip">🔔</div><h3>Notifications that work</h3><p>Sender and message preview, delivered by macOS. Click one to jump straight to that account.</p></div>
+    <div class="card"><div class="chip">🍃</div><h3>Memory you control</h3><p>Per-account modes let idle numbers sleep to almost zero RAM and wake to check on a timer.</p></div>
+    <div class="card"><div class="chip">⌨️</div><h3>Keyboard-first</h3><p>⌘1…⌘9 to switch, ⇧⌘] / ⇧⌘[ to cycle, ⌘R to reload. A Dock badge counts every unread.</p></div>
+    <div class="card"><div class="chip">📞</div><h3>Calls included</h3><p>Camera and microphone are granted for WhatsApp voice and video calls, right inside the window.</p></div>
+  </div>
+</section>
+
+<section class="wrap reveal">
+  <div class="sec-head">
+    <span class="eyebrow">Memory modes</span>
+    <h2>Decide what each number is allowed to cost.</h2>
+    <p>Set it per account. The default keeps one active and lets the rest sleep.</p>
+  </div>
+  <div class="modes">
+    <div class="mode">
+      <div class="name">⚡ Always on</div>
+      <div class="ram">RAM while idle</div>
+      <div class="bar"><i data-w="100%"></i></div>
+      <p>Connected the whole time. Notifications land instantly, with content. Costs the most memory.</p>
+    </div>
+    <div class="mode feat">
+      <div class="name">🍃 Economy <span class="pill">DEFAULT</span></div>
+      <div class="ram">RAM while asleep</div>
+      <div class="bar"><i data-w="6%"></i></div>
+      <p>Sleeps to near zero and wakes every few minutes to check. You get a heads-up notification, slightly delayed.</p>
+    </div>
+    <div class="mode">
+      <div class="name">✋ Manual</div>
+      <div class="ram">RAM while closed</div>
+      <div class="bar"><i data-w="2%"></i></div>
+      <p>Off until you open it. Zero memory, no background notifications. For numbers you only check now and then.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap reveal">
+  <div class="privacy">
+    <div class="ic">🛡️</div>
+    <div>
+      <h2>Nothing leaves your Mac.</h2>
+      <p>MultiZap is a local wrapper around the official WhatsApp Web — no server, no analytics, nothing sent anywhere. Sessions and cached photos live only on your machine. It wraps WhatsApp Web as-is, so there's no ban risk beyond using WhatsApp Web normally.</p>
+    </div>
+  </div>
+</section>
+
+<section class="contrib wrap reveal">
+  <span class="eyebrow">Open source</span>
+  <h2 class="display">Built in the open. Come build it further.</h2>
+  <p>MultiZap is MIT-licensed and early. If it's useful to you, a star helps others find it — and issues and pull requests are genuinely welcome, from a typo to a whole new feature.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/victorandraad/MultiZap">★ Star on GitHub</a>
+    <a class="btn btn-ghost" href="https://github.com/victorandraad/MultiZap/issues/new">Open an issue</a>
+  </div>
+  <div class="steps">
+<span class="c">$</span> git clone https://github.com/victorandraad/MultiZap.git
+<span class="c">$</span> cd MultiZap
+<span class="c">$</span> ./setup-signing.sh   <span style="color:#5A6B61"># one-time signing identity</span>
+<span class="c">$</span> ./build-app.sh &amp;&amp; open MultiZap.app
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>MIT · <a href="https://github.com/victorandraad/MultiZap">github.com/victorandraad/MultiZap</a></span>
+    <span>Not affiliated with WhatsApp or Meta. WhatsApp is a trademark of Meta Platforms, Inc.</span>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const io = new IntersectionObserver((es)=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+  },{threshold:.14});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  // Animate RAM bars when the modes section shows
+  const bars = document.querySelectorAll('.bar i');
+  const bo = new IntersectionObserver((es)=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.style.width = e.target.dataset.w; bo.unobserve(e.target);} });
+  },{threshold:.6});
+  bars.forEach(b=>bo.observe(b));
+</script>
+</body>
+</html>
