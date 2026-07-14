@@ -1,0 +1,16 @@
+# Build
+.build/
+*.app
+*.dmg
+
+# Icon working files (keep icon.svg + AppIcon.icns)
+assets/out/
+assets/AppIcon.iconset/
+assets/icon_1024.png
+
+# macOS
+.DS_Store
+
+# Xcode
+*.xcodeproj/xcuserdata/
+DerivedData/

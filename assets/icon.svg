@@ -1,0 +1,50 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2AE070"/>
+      <stop offset="1" stop-color="#12A150"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="24" flood-color="#0A5A2E" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Fundo: quadrado arredondado (squircle) verde WhatsApp -->
+  <rect x="0" y="0" width="1024" height="1024" rx="232" ry="232" fill="url(#bg)"/>
+
+  <!-- Bolha de trás (segunda conta) -->
+  <g opacity="0.55">
+    <path fill="#FFFFFF" d="
+      M 470 250
+      h 250
+      a 96 96 0 0 1 96 96
+      v 176
+      a 96 96 0 0 1 -96 96
+      h -250
+      a 96 96 0 0 1 -96 -96
+      v -176
+      a 96 96 0 0 1 96 -96 z"/>
+  </g>
+
+  <!-- Bolha da frente (conta ativa) com rabinho e três pontos -->
+  <g filter="url(#shadow)">
+    <path fill="#FFFFFF" d="
+      M 300 380
+      h 250
+      a 100 100 0 0 1 100 100
+      v 150
+      a 100 100 0 0 1 -100 100
+      h -150
+      l -96 84
+      v -84
+      h -4
+      a 100 100 0 0 1 -100 -100
+      v -150
+      a 100 100 0 0 1 100 -100 z"/>
+    <g fill="#12A150">
+      <circle cx="360" cy="555" r="26"/>
+      <circle cx="450" cy="555" r="26"/>
+      <circle cx="540" cy="555" r="26"/>
+    </g>
+  </g>
+</svg>
