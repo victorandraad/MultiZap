@@ -3,6 +3,8 @@
   <h1>MultiZap</h1>
   <p><strong>Run multiple WhatsApp accounts in one native macOS app — without Electron.</strong></p>
 
+  <p><a href="https://victorandraad.github.io/MultiZap/"><strong>🌐 Website</strong></a> · <a href="https://github.com/victorandraad/MultiZap/releases/latest"><strong>⬇ Download</strong></a></p>
+
   <p>
     <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2014%2B-black"/>
     <img alt="Swift" src="https://img.shields.io/badge/Swift-6-orange"/>
